@@ -56,4 +56,16 @@ GameConfig.Energy = {
 	RegenPerSecond = 12,    -- quanto regenera por segundo
 }
 
+-- ===== Animacoes do personagem =====
+-- Coloque aqui os IDs das suas animacoes (criadas no Animation Editor e
+-- publicadas na sua conta). Formato: "rbxassetid://NUMERO".
+-- Deixe como "rbxassetid://0" para NAO tocar animacao (so o efeito visual).
+-- IMPORTANTE: o personagem padrao do Roblox e R15 — crie animacoes R15.
+GameConfig.Animations = {
+	Punch = "rbxassetid://0",      -- gesto de soco
+	Fireball = "rbxassetid://0",   -- gesto de lancar bola de fogo
+	Shockwave = "rbxassetid://0",  -- gesto da onda de choque
+	Dash = "rbxassetid://0",       -- gesto do dash/avanco
+}
+
 return GameConfig

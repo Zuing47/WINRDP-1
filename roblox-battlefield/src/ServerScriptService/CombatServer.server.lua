@@ -51,6 +51,37 @@ local function applyDamage(targetHum, amount, attacker)
 	Debris:AddItem(tag, 2)
 end
 
+-- Toca uma animacao no personagem. Como roda no servidor, o gesto
+-- aparece para TODOS os jogadores automaticamente.
+local function playAnimation(char, animId)
+	if not animId or animId == "" or animId == "rbxassetid://0" then
+		return -- nenhum ID configurado: ignora
+	end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+
+	local animator = hum:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = hum
+	end
+
+	local anim = Instance.new("Animation")
+	anim.AnimationId = animId
+
+	local ok, track = pcall(function()
+		return animator:LoadAnimation(anim)
+	end)
+	if not ok or not track then return end
+
+	track.Priority = Enum.AnimationPriority.Action
+	track:Play(0.1)
+	-- Limpa quando terminar para nao acumular faixas.
+	track.Stopped:Connect(function()
+		track:Destroy()
+	end)
+end
+
 -- Empurra uma parte para longe de uma origem.
 local function applyKnockback(targetHrp, fromPosition, power)
 	if power <= 0 then return end
@@ -109,6 +140,9 @@ local function handlePunch(player)
 	if not char then return end
 	s.lastPunch = now()
 
+	-- Toca a animacao de soco.
+	playAnimation(char, Config.Animations.Punch)
+
 	-- Acerta o inimigo mais proximo a frente, dentro do alcance.
 	local origin = hrp.Position + hrp.CFrame.LookVector * (Config.Punch.Range * 0.5)
 	local targets = getTargetsInRadius(origin, Config.Punch.Range * 0.5, player)
@@ -142,6 +176,8 @@ local PowerHandlers = {}
 
 -- Bola de fogo: cria um projetil que voa e explode no impacto.
 function PowerHandlers.Fireball(player, char, hrp, cfg)
+	playAnimation(char, Config.Animations.Fireball)
+
 	local projectile = Instance.new("Part")
 	projectile.Shape = Enum.PartType.Ball
 	projectile.Size = Vector3.new(2, 2, 2)
@@ -193,6 +229,8 @@ end
 
 -- Onda de choque: dano em area ao redor do jogador.
 function PowerHandlers.Shockwave(player, char, hrp, cfg)
+	playAnimation(char, Config.Animations.Shockwave)
+
 	local targets = getTargetsInRadius(hrp.Position, cfg.Radius, player)
 	for _, t in ipairs(targets) do
 		applyDamage(t.hum, cfg.Damage, player)
@@ -208,6 +246,8 @@ end
 
 -- Dash: impulso rapido na direcao que o jogador olha.
 function PowerHandlers.Dash(player, char, hrp, cfg)
+	playAnimation(char, Config.Animations.Dash)
+
 	local bv = Instance.new("BodyVelocity")
 	bv.MaxForce = Vector3.new(1e5, 0, 1e5)
 	bv.Velocity = hrp.CFrame.LookVector * cfg.Power

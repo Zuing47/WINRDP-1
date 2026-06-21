@@ -1,0 +1,36 @@
+{
+  "name": "RobloxBattlefield",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "GameConfig": {
+        "$path": "src/ReplicatedStorage/GameConfig.lua"
+      },
+      "RemotesSetup": {
+        "$path": "src/ReplicatedStorage/RemotesSetup.lua"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "CombatServer": {
+        "$path": "src/ServerScriptService/CombatServer.server.lua"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "CombatClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/CombatClient.client.lua"
+        },
+        "EffectsClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/EffectsClient.client.lua"
+        },
+        "HUDClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/HUDClient.client.lua"
+        }
+      }
+    }
+  }
+}

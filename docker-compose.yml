@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: priceai
+      POSTGRES_PASSWORD: priceai
+      POSTGRES_DB: priceai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U priceai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: priceai
+      MINIO_ROOT_PASSWORD: priceai-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://priceai:priceai@postgres:5432/priceai
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: priceai
+      S3_SECRET_KEY: priceai-secret
+      S3_BUCKET: priceai-photos
+      JWT_SECRET: change-me-in-production
+      JWT_REFRESH_SECRET: change-me-too-in-production
+      PORT: 3001
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

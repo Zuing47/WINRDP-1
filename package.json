@@ -1,0 +1,20 @@
+{
+  "name": "priceai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "PriceAI — precificação inteligente de produtos usados com IA, análise de mercado e visão computacional",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @priceai/api --filter @priceai/web dev",
+    "dev:api": "pnpm --filter @priceai/api dev",
+    "dev:web": "pnpm --filter @priceai/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:migrate": "pnpm --filter @priceai/api prisma:migrate",
+    "db:seed": "pnpm --filter @priceai/api prisma:seed"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

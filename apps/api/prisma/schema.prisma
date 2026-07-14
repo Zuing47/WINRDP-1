@@ -1,0 +1,428 @@
+// PriceAI — schema Prisma (PostgreSQL)
+// Modelo de dados conforme ARCHITECTURE.md §3
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum EvaluationStatus {
+  DRAFT
+  PENDING
+  ANALYZING_PHOTOS
+  SEARCHING_MARKET
+  PRICING
+  DONE
+  FAILED
+}
+
+enum ProductCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  POOR
+  FOR_PARTS
+}
+
+enum Marketplace {
+  MERCADO_LIVRE
+  OLX
+  FACEBOOK_MARKETPLACE
+  EBAY
+  AMAZON
+  MAGAZINE_LUIZA
+}
+
+enum AlertType {
+  PRICE_RISE
+  PRICE_DROP
+  OPPORTUNITY
+  BIG_DISCOUNT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum PricingStage {
+  BASE
+  AGE
+  CONDITION
+  DEMAND
+  REGION
+  HISTORY
+}
+
+enum NotificationType {
+  ALERT
+  EVALUATION_DONE
+  SUBSCRIPTION
+  SYSTEM
+}
+
+// ─── Usuários e autenticação ─────────────────────────────────────
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  name          String
+  email         String     @unique
+  passwordHash  String?    @map("password_hash")
+  googleId      String?    @unique @map("google_id")
+  avatarUrl     String?    @map("avatar_url")
+  role          Role       @default(USER)
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  refreshTokens RefreshToken[]
+  evaluations   Evaluation[]
+  monitors      Monitor[]
+  notifications Notification[]
+  subscriptions Subscription[]
+  apiUsageLogs  ApiUsageLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  replacedBy String?   @map("replaced_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─── Catálogo ────────────────────────────────────────────────────
+
+model Category {
+  id                     String   @id @default(uuid()) @db.Uuid
+  slug                   String   @unique
+  name                   String
+  icon                   String?
+  // JSON schema dos atributos dinâmicos por categoria
+  attributesSchema       Json     @default("[]") @map("attributes_schema")
+  // depreciação anual default (ex.: 0.18 = 18% a.a.)
+  defaultAnnualDepreciation Float @default(0.15) @map("default_annual_depreciation")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  models          Model[]
+  brandCategories BrandCategory[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  logoUrl   String?  @map("logo_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  models          Model[]
+  brandCategories BrandCategory[]
+
+  @@map("brands")
+}
+
+model BrandCategory {
+  brandId    String @map("brand_id") @db.Uuid
+  categoryId String @map("category_id") @db.Uuid
+
+  brand    Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([brandId, categoryId])
+  @@map("brand_categories")
+}
+
+model Model {
+  id          String   @id @default(uuid()) @db.Uuid
+  brandId     String   @map("brand_id") @db.Uuid
+  categoryId  String   @map("category_id") @db.Uuid
+  name        String
+  slug        String   @unique
+  releaseYear Int?     @map("release_year")
+  // preço de lançamento (BRL)
+  msrp        Float?
+  specs       Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  brand        Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  category     Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  evaluations  Evaluation[]
+  priceHistory PriceHistory[]
+  monitors     Monitor[]
+
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([name])
+  @@map("models")
+}
+
+// ─── Avaliações ──────────────────────────────────────────────────
+
+model Evaluation {
+  id                  String           @id @default(uuid()) @db.Uuid
+  userId              String           @map("user_id") @db.Uuid
+  modelId             String           @map("model_id") @db.Uuid
+  status              EvaluationStatus @default(DRAFT)
+  condition           ProductCondition @default(GOOD)
+  year                Int?
+  attributes          Json             @default("{}")
+  hasInvoice          Boolean          @default(false) @map("has_invoice")
+  hasWarranty         Boolean          @default(false) @map("has_warranty")
+  accessories         Json             @default("[]")
+  locationCity        String?          @map("location_city")
+  locationState       String?          @map("location_state")
+  conditionScore      Float?           @map("condition_score")
+  recommendedPrice    Float?           @map("recommended_price")
+  quickSalePrice      Float?           @map("quick_sale_price")
+  maxPrice            Float?           @map("max_price")
+  minMarketPrice      Float?           @map("min_market_price")
+  avgMarketPrice      Float?           @map("avg_market_price")
+  medianMarketPrice   Float?           @map("median_market_price")
+  confidence          Float?
+  estimatedDaysToSell Int?             @map("estimated_days_to_sell")
+  currency            String           @default("BRL")
+  failureReason       String?          @map("failure_reason")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model            Model             @relation(fields: [modelId], references: [id])
+  photos           Photo[]
+  conditionReport  ConditionReport?
+  marketPrices     MarketPrice[]
+  priceAdjustments PriceAdjustment[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([modelId])
+  @@map("evaluations")
+}
+
+model Photo {
+  id           String   @id @default(uuid()) @db.Uuid
+  evaluationId String   @map("evaluation_id") @db.Uuid
+  storageKey   String   @map("storage_key")
+  url          String
+  order        Int      @default(0)
+  analysis     Json?
+  score        Float?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId])
+  @@map("photos")
+}
+
+model ConditionReport {
+  id           String   @id @default(uuid()) @db.Uuid
+  evaluationId String   @unique @map("evaluation_id") @db.Uuid
+  overallScore Float    @map("overall_score")
+  summary      String
+  findings     Json     @default("[]")
+  provider     String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("condition_reports")
+}
+
+model MarketPrice {
+  id             String      @id @default(uuid()) @db.Uuid
+  evaluationId   String      @map("evaluation_id") @db.Uuid
+  marketplace    Marketplace
+  title          String
+  price          Float
+  url            String
+  sellerRating   Float?      @map("seller_rating")
+  conditionLabel String?     @map("condition_label")
+  isOutlier      Boolean     @default(false) @map("is_outlier")
+  excludedReason String?     @map("excluded_reason")
+  collectedAt    DateTime    @default(now()) @map("collected_at")
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId])
+  @@map("market_prices")
+}
+
+model PriceHistory {
+  id              String            @id @default(uuid()) @db.Uuid
+  modelId         String            @map("model_id") @db.Uuid
+  date            DateTime          @db.Date
+  avgPrice        Float             @map("avg_price")
+  medianPrice     Float             @map("median_price")
+  minPrice        Float             @map("min_price")
+  maxPrice        Float             @map("max_price")
+  sampleSize      Int               @map("sample_size")
+  conditionBucket ProductCondition? @map("condition_bucket")
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@unique([modelId, date, conditionBucket])
+  @@index([modelId, date])
+  @@map("price_history")
+}
+
+model PriceAdjustment {
+  id           String       @id @default(uuid()) @db.Uuid
+  evaluationId String       @map("evaluation_id") @db.Uuid
+  stage        PricingStage
+  order        Int
+  inputPrice   Float        @map("input_price")
+  outputPrice  Float        @map("output_price")
+  factor       Float
+  reason       String
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId, order])
+  @@map("price_adjustments")
+}
+
+// ─── Monitoramento ───────────────────────────────────────────────
+
+model Monitor {
+  id                    String            @id @default(uuid()) @db.Uuid
+  userId                String            @map("user_id") @db.Uuid
+  modelId               String            @map("model_id") @db.Uuid
+  condition             ProductCondition  @default(GOOD)
+  targetPrice           Float?            @map("target_price")
+  notifyOnRise          Boolean           @default(true) @map("notify_on_rise")
+  notifyOnDrop          Boolean           @default(true) @map("notify_on_drop")
+  notifyOnOpportunity   Boolean           @default(true) @map("notify_on_opportunity")
+  notifyOnBigDiscount   Boolean           @default(true) @map("notify_on_big_discount")
+  active                Boolean           @default(true)
+  lastCheckedAt         DateTime?         @map("last_checked_at")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  model  Model   @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  alerts Alert[]
+
+  @@index([userId])
+  @@index([active])
+  @@map("monitors")
+}
+
+model Alert {
+  id         String    @id @default(uuid()) @db.Uuid
+  monitorId  String    @map("monitor_id") @db.Uuid
+  type       AlertType
+  oldPrice   Float     @map("old_price")
+  newPrice   Float     @map("new_price")
+  listingUrl String?   @map("listing_url")
+  read       Boolean   @default(false)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  monitor Monitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([monitorId, read])
+  @@map("alerts")
+}
+
+// ─── Planos e assinaturas ────────────────────────────────────────
+
+model Plan {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String   @unique
+  priceCents Int      @map("price_cents")
+  interval   String   @default("month")
+  // { evaluationsPerMonth, monitors, photosPerEvaluation }
+  limits     Json     @default("{}")
+  features   Json     @default("[]")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                 String             @id @default(uuid()) @db.Uuid
+  userId             String             @map("user_id") @db.Uuid
+  planId             String             @map("plan_id") @db.Uuid
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime           @map("current_period_start")
+  currentPeriodEnd   DateTime           @map("current_period_end")
+  externalId         String?            @map("external_id")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@index([userId, status])
+  @@map("subscriptions")
+}
+
+// ─── Notificações e logs ─────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String
+  body      String
+  data      Json             @default("{}")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model ApiUsageLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  route     String
+  method    String   @default("GET")
+  status    Int
+  latencyMs Int      @map("latency_ms")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId])
+  @@map("api_usage_logs")
+}

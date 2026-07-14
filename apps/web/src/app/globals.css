@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 9%; /* zinc-900 */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 9%;
+    --primary: 221 83% 53%; /* #2563EB */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%; /* zinc-100 */
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%; /* zinc-500 */
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 90%; /* zinc-200 */
+    --input: 240 6% 90%;
+    --ring: 221 83% 53%;
+    --chart-grid: 240 6% 93%;
+  }
+
+  .dark {
+    --background: 240 10% 4%; /* zinc-950 */
+    --foreground: 0 0% 98%;
+    --card: 240 6% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 6% 7%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 12%;
+    --muted-foreground: 240 5% 65%; /* zinc-400 */
+    --accent: 240 4% 14%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 16%; /* ~zinc-800 */
+    --input: 240 4% 16%;
+    --ring: 221 83% 53%;
+    --chart-grid: 240 4% 14%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4 {
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  .money {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Scrollbar discreta */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

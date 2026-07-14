@@ -1,0 +1,35 @@
+export default () => ({
+  port: Number(process.env.PORT ?? 3001),
+  env: process.env.NODE_ENV ?? 'development',
+  databaseUrl: process.env.DATABASE_URL,
+  redisUrl: process.env.REDIS_URL,
+  jwt: {
+    secret: process.env.JWT_SECRET ?? 'dev-secret',
+    refreshSecret: process.env.JWT_REFRESH_SECRET ?? 'dev-refresh-secret',
+    accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
+    refreshTtlDays: Number(process.env.JWT_REFRESH_TTL_DAYS ?? 30),
+  },
+  s3: {
+    endpoint: process.env.S3_ENDPOINT,
+    region: process.env.S3_REGION ?? 'us-east-1',
+    accessKey: process.env.S3_ACCESS_KEY,
+    secretKey: process.env.S3_SECRET_KEY,
+    bucket: process.env.S3_BUCKET ?? 'priceai-photos',
+    forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== 'false',
+  },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+  },
+  ai: {
+    provider: process.env.AI_PROVIDER ?? 'mock',
+    openaiKey: process.env.OPENAI_API_KEY,
+    openaiModel: process.env.OPENAI_MODEL ?? 'gpt-4o',
+    anthropicKey: process.env.ANTHROPIC_API_KEY,
+    anthropicModel: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5',
+    geminiKey: process.env.GEMINI_API_KEY,
+    geminiModel: process.env.GEMINI_MODEL ?? 'gemini-2.0-flash',
+    ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434',
+    ollamaModel: process.env.OLLAMA_MODEL ?? 'llava',
+  },
+  marketCacheTtl: Number(process.env.MARKET_CACHE_TTL ?? 21600),
+});

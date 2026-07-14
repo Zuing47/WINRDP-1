@@ -19,7 +19,9 @@ export class PriceMonitorWorker {
     private readonly queue: QueueService,
     private readonly notifications: NotificationsService,
   ) {
-    this.queue.registerHandler(QUEUES.PRICE_MONITOR, async () => this.runAll());
+    this.queue.registerHandler(QUEUES.PRICE_MONITOR, async () => {
+      await this.runAll();
+    });
   }
 
   @Cron(CronExpression.EVERY_HOUR)

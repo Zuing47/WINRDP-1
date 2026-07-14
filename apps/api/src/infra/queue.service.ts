@@ -37,7 +37,7 @@ export class QueueService implements OnModuleDestroy {
         async (job) => {
           await handler(job.data);
         },
-        { connection },
+        { connection: connection as any },
       );
       worker.on('failed', (job, err) =>
         this.logger.error(`Job ${queueName}#${job?.id} falhou: ${err.message}`),
@@ -54,7 +54,7 @@ export class QueueService implements OnModuleDestroy {
       let queue = this.queues.get(queueName);
       if (!queue) {
         queue = new Queue(queueName, {
-          connection: this.redis.connection.duplicate({ maxRetriesPerRequest: null }),
+          connection: this.redis.connection.duplicate({ maxRetriesPerRequest: null }) as any,
           defaultJobOptions: {
             attempts: 3,
             backoff: { type: 'exponential', delay: 2000 },

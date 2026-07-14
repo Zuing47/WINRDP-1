@@ -140,11 +140,12 @@ export const mockApi: PriceAiApi = {
   },
   async getBrands(categoryId) {
     await delay(250);
+    if (!categoryId) return [...state.brands];
     return state.brands.filter((b) => b.categoryIds.includes(categoryId));
   },
   async getModels(brandId, search) {
     await delay(250);
-    let list = state.models.filter((m) => m.brandId === brandId);
+    let list = brandId ? state.models.filter((m) => m.brandId === brandId) : [...state.models];
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((m) => m.name.toLowerCase().includes(q));

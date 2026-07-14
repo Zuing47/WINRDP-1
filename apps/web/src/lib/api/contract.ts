@@ -34,8 +34,10 @@ export interface PriceAiApi {
 
   // catálogo
   getCategories(): Promise<Category[]>;
-  getBrands(categoryId: string): Promise<Brand[]>;
-  getModels(brandId: string, search?: string): Promise<Model[]>;
+  /** Sem categoryId, retorna todas as marcas (uso administrativo). */
+  getBrands(categoryId?: string): Promise<Brand[]>;
+  /** Sem brandId, retorna todos os modelos (uso administrativo). */
+  getModels(brandId?: string, search?: string): Promise<Model[]>;
 
   // dashboard
   getDashboardStats(): Promise<DashboardStats>;
